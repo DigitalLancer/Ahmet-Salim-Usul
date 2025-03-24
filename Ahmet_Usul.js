@@ -25,7 +25,7 @@
             </div>
         </div>`;
 
-        $('.product-detail').after(html);
+        $('.product-detail').append(html);
     };
 
     const buildCSS = () => {
