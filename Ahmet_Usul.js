@@ -2,7 +2,7 @@
     const init = () => {
         buildHTML();
         buildCSS();
-        fetchData();
+        loadProducts();
         setEvents();
     };
 
@@ -77,9 +77,7 @@
         });
 
         $(document).on('click', '.card-like-button', function (e) {
-            console.log("Heart clicked");
             e.preventDefault();
-            e.stopPropagation();
             $(this).toggleClass('active');
             const isLiked = $(this).hasClass('active');
             updateLocalStorage($(this).attr('id'), isLiked);
@@ -96,40 +94,59 @@
         } else {
             likedProductIds = likedProductIds.filter(id => id !== productId);
         }
-        console.log(likedProductIds)
 
         localStorage.setItem('likedProductIds', JSON.stringify(likedProductIds));
     };
 
 
-    const fetchData = async () => {
+    const loadProducts = async () => {
         try {
-            const response = await fetch("https://gist.githubusercontent.com/sevindi/5765c5812bbc8238a38b3cf52f233651/raw/56261d81af8561bf0a7cf692fe572f9e1e91f372/products.json");
-            if (!response.ok) throw new Error(`Could not fetch data! Status: ${response.status}`);
-            const data = await response.json();
-            const likedProductIds = JSON.parse(localStorage.getItem('likedProductIds') || '[]').map(Number);;
-            console.log("Fetched liked ids:", likedProductIds);
-
-            data.forEach(item => {
-                const card = $('<div>').addClass('card');
-                const link = $('<a>').attr('href', item.url).attr('target', '_blank').append($('<img>').attr('src', item.img));
-                const isLiked = likedProductIds.includes(item.id);
-
-                const likeButton = $('<button>').attr('id', item.id).addClass('card-like-button').addClass(isLiked ? 'active' : '').html(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20.576" height="19.483" viewBox="0 0 20.576 19.483"><path fill="none" stroke="#555" stroke-width="1.5px" d="M19.032 7.111c-.278-3.063-2.446-5.285-5.159-5.285a5.128 5.128 0 0 0-4.394 2.532 4.942 4.942 0 0 0-4.288-2.532C2.478 1.826.31 4.048.032 7.111a5.449 5.449 0 0 0 .162 2.008 8.614 8.614 0 0 0 2.639 4.4l6.642 6.031 6.755-6.027a8.615 8.615 0 0 0 2.639-4.4 5.461 5.461 0 0 0 .163-2.012z" transform="translate(.756 -1.076)"></path></svg>
-                `);
-
-                const info = $('<div>').addClass('info').append(
-                    $('<span>').text(item.name),
-                    $('<div>').addClass('card-price').text(item.price),
-                    $('<button>').addClass('addCart-btn').text('SEPETE EKLE')
-                );
-                card.append(link, likeButton, info);
-                $('#carousel-grid').append(card);
-            });
+            let productsData = localStorage.getItem('carouselProducts');
+            let products;
+            
+            if (!productsData) {
+                console.log("Fetching products from API");
+                const response = await fetch("https://gist.githubusercontent.com/sevindi/5765c5812bbc8238a38b3cf52f233651/raw/56261d81af8561bf0a7cf692fe572f9e1e91f372/products.json");
+                if (!response.ok) throw new Error(`Could not fetch data! Status: ${response.status}`);
+                products = await response.json();               
+                localStorage.setItem('carouselProducts', JSON.stringify(products));
+            } else {
+                console.log("Loading products from localStorage");
+                products = JSON.parse(productsData);
+            }
+            
+            renderProducts(products);
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const renderProducts = (data) => {
+        $('#carousel-grid').empty();
+        
+        const likedProductIds = JSON.parse(localStorage.getItem('likedProductIds') || '[]');
+
+        data.forEach(item => {
+            const card = $('<div>').addClass('card');
+            const link = $('<a>').attr('href', item.url).attr('target', '_blank').append($('<img>').attr('src', item.img));
+            const isLiked = likedProductIds.includes(item.id.toString());
+
+            const likeButton = $('<button>')
+                .attr('id', item.id)
+                .addClass('card-like-button')
+                .addClass(isLiked ? 'active' : '')
+                .html(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20.576" height="19.483" viewBox="0 0 20.576 19.483"><path fill="none" stroke="#555" stroke-width="1.5px" d="M19.032 7.111c-.278-3.063-2.446-5.285-5.159-5.285a5.128 5.128 0 0 0-4.394 2.532 4.942 4.942 0 0 0-4.288-2.532C2.478 1.826.31 4.048.032 7.111a5.449 5.449 0 0 0 .162 2.008 8.614 8.614 0 0 0 2.639 4.4l6.642 6.031 6.755-6.027a8.615 8.615 0 0 0 2.639-4.4 5.461 5.461 0 0 0 .163-2.012z" transform="translate(.756 -1.076)"></path></svg>
+                `);
+
+            const info = $('<div>').addClass('info').append(
+                $('<span>').text(item.name),
+                $('<div>').addClass('card-price').text(item.price),
+                $('<button>').addClass('addCart-btn').text('SEPETE EKLE')
+            );
+            card.append(link, likeButton, info);
+            $('#carousel-grid').append(card);
+        });
     };
 
     $(document).ready(init);
