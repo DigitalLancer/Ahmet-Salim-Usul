@@ -1,1 +1,1 @@
-Javascript code for a LC Waikiki inspired carousel component 
+LC Waikiki inspired carousel component written in JavaScript with JQuery
